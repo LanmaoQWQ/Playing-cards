@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b3d2e" />
+  <title>吹牛B · 扑克牌</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="table-bg"></div>
+  <div class="ambient">
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
+  </div>
+
+  <main class="app-shell">
+    <!-- 创建 / 加入 -->
+    <section class="view active" id="view-home">
+      <div class="brand-card">
+        <div class="brand-mark">♠</div>
+        <p class="brand-kicker">徐涛司马</p>
+        <h1>吹牛B</h1>
+        <p class="brand-subtitle">朋友间的扑克心理战</p>
+
+        <div class="auth-panel" id="auth-panel">
+          <div class="auth-tabs">
+            <button class="auth-tab active" data-auth-mode="login" type="button">登录</button>
+            <button class="auth-tab" data-auth-mode="register" type="button">注册</button>
+            <button class="auth-tab" data-auth-mode="guest" type="button">游客</button>
+          </div>
+          <div id="auth-credentials">
+            <label class="field">
+              <span>账号</span>
+              <input id="auth-username" type="text" maxlength="16" autocomplete="username" />
+              <small class="field-hint" id="username-hint" hidden>3–16 个字符，支持中文、英文、数字，不能包含空格</small>
+            </label>
+            <div class="field">
+              <span>密码</span>
+              <div class="password-row">
+                <input id="auth-password" type="password" maxlength="64" autocomplete="current-password" />
+                <button class="password-toggle" id="btn-toggle-password" type="button" aria-label="显示密码" title="显示密码">👁</button>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-block" id="btn-auth-submit">登录</button>
+          </div>
+          <div id="account-logged" hidden>
+            <div class="account-badge">
+              <span>已登录：<strong id="account-username">--</strong></span>
+              <button class="btn btn-ghost" id="btn-logout" type="button">退出登录</button>
+            </div>
+            <div class="account-actions">
+              <button class="btn btn-secondary" id="btn-profile" type="button">我的战绩</button>
+              <button class="btn btn-secondary" id="btn-leaderboard" type="button">排行榜</button>
+            </div>
+          </div>
+          <p class="form-error" id="auth-error"></p>
+        </div>
+
+        <div class="guest-area" id="guest-area">
+          <label class="field">
+            <span>游客昵称</span>
+            <input id="input-name" type="text" maxlength="16" placeholder="例如：老张" autocomplete="nickname" />
+          </label>
+        </div>
+
+        <button class="btn btn-secondary btn-block" id="btn-browse-rooms">加入房间</button>
+        <button class="btn btn-primary btn-block" id="btn-create">创建房间</button>
+        <p class="form-error" id="home-error"></p>
+
+        <details class="audio-settings">
+          <summary>音量设置</summary>
+          <label class="volume-field">
+            <span>背景音乐音量 <output id="music-volume-value">60%</output></span>
+            <input id="music-volume" type="range" min="0" max="100" step="1" value="60" />
+          </label>
+          <label class="volume-field">
+            <span>音效音量 <output id="sfx-volume-value">100%</output></span>
+            <input id="sfx-volume" type="range" min="0" max="100" step="1" value="100" />
+          </label>
+        </details>
+
+        <details class="connection-help">
+          <summary>朋友怎么连进来？</summary>
+          <p>1. 你运行 <code>start.bat</code> 启动服务器。</p>
+          <p>2. 所有人和你连入同一个 ZeroTier 网络。</p>
+          <p>3. 朋友打开你分享的地址，输入房间码和昵称即可。</p>
+          <p>分享地址：<code id="share-url">正在检测…</code></p>
+          <p>默认端口：<code>8080</code>；同一 WiFi 也可直接用局域网 IP。</p>
+        </details>
+      </div>
+    </section>
+
+    <!-- 房间列表（加入房间浏览器） -->
+    <section class="view" id="view-rooms">
+      <header class="topbar">
+        <div>
+          <span class="eyebrow">加入房间</span>
+          <h2 class="room-code">在线房间</h2>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost" id="btn-rooms-refresh" type="button">刷新</button>
+          <button class="btn btn-ghost" id="btn-rooms-back" type="button">返回</button>
+        </div>
+      </header>
+
+      <div class="lobby-content">
+        <div class="lobby-card rooms-card">
+          <div class="rooms-join-box">
+            <label class="field" id="rooms-nick-wrap" hidden>
+              <span>游客昵称</span>
+              <input id="rooms-nick" type="text" maxlength="16" placeholder="例如：老张" autocomplete="nickname" />
+            </label>
+            <div class="join-row">
+              <label class="field grow">
+                <span>房间码加入</span>
+                <input id="input-code" type="text" maxlength="4" placeholder="例如：7K2A" autocomplete="off" />
+              </label>
+              <button class="btn btn-secondary" id="btn-join">加入</button>
+            </div>
+            <p class="form-error" id="rooms-error"></p>
+          </div>
+          <div id="room-list">
+            <p class="empty-text rooms-state-text">加载中…</p>
+          </div>
+          <p class="rooms-refresh-note" id="rooms-status"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 等待房 -->
+    <section class="view" id="view-lobby">
+      <header class="topbar">
+        <div>
+          <span class="eyebrow">房间码</span>
+          <h2 class="room-code" id="room-code">----</h2>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost music-toggle" id="btn-music-lobby" type="button" aria-label="关闭音乐" title="关闭音乐">♫</button>
+          <button class="btn btn-ghost" id="copy-room-code">复制房间码</button>
+          <button class="btn btn-ghost chat-toggle" id="btn-chat-lobby" type="button" aria-label="打开聊天" title="打开聊天">💬</button>
+          <button class="btn btn-ghost" id="btn-leave-lobby">离开</button>
+        </div>
+      </header>
+
+      <div class="lobby-content">
+        <div class="lobby-card">
+          <h3>等待玩家加入</h3>
+          <p class="lobby-status" id="lobby-status">至少 2 人，最多 6 人</p>
+          <div class="player-grid" id="player-list"></div>
+          <div class="ai-controls" id="ai-controls" hidden>
+            <div class="ai-strength-row">
+              <span class="ai-controls-label">AI 强度</span>
+              <div class="strength-picker" id="ai-strength-picker"></div>
+              <button class="btn btn-secondary" id="btn-add-ai" type="button">+ 添加 AI</button>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-block" id="btn-start" disabled>开始游戏</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 牌桌 -->
+    <section class="view" id="view-game">
+      <header class="topbar game-topbar">
+        <div class="game-meta">
+          <span class="pill">房间 <strong id="game-room-code">----</strong></span>
+          <span class="pill">第 <strong id="game-round">1</strong> 轮</span>
+        </div>
+        <div class="timer-wrap">
+          <span class="timer-label">倒计时</span>
+          <strong class="timer" id="game-timer">--</strong>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost music-toggle" id="btn-music-game" type="button" aria-label="关闭音乐" title="关闭音乐">♫</button>
+          <button class="btn btn-ghost chat-toggle" id="btn-chat-game" type="button" aria-label="打开聊天" title="打开聊天">💬</button>
+          <button class="btn btn-ghost" id="btn-leave-game">离开</button>
+        </div>
+      </header>
+
+      <div class="game-info">
+        <div>
+          <span class="info-label">本轮报点</span>
+          <strong class="declared-rank" id="game-declared">待首家报点</strong>
+        </div>
+        <div>
+          <span class="info-label">当前行动</span>
+          <strong class="current-turn" id="game-turn">--</strong>
+        </div>
+      </div>
+
+      <div class="table-area">
+        <div class="opponents" id="opponents"></div>
+        <div class="table-center">
+          <span class="table-caption">桌面上的牌</span>
+          <div class="table-plays" id="table-plays"></div>
+        </div>
+        <div class="challenge-bar">
+          <span id="challenge-target-label">等待首家报点出牌…</span>
+          <div class="challenge-actions">
+            <button class="btn btn-secondary" id="btn-pass-round" disabled title="过牌后本轮不再出牌/质疑，直到本轮结束">过</button>
+            <button class="btn btn-danger" id="btn-challenge" disabled title="质疑上一个出牌的人">不相信</button>
+          </div>
+        </div>
+        <div class="table-notice" id="table-notice" role="status" hidden></div>
+      </div>
+
+      <div class="hand-panel">
+        <div class="hand-head">
+          <span>我的手牌</span>
+          <span class="hand-count" id="hand-count">0 张</span>
+        </div>
+        <div class="hand" id="hand-area"></div>
+        <div class="controls">
+          <div class="rank-picker-wrap">
+            <span class="control-label" id="rank-label">报点</span>
+            <div class="rank-picker" id="rank-picker"></div>
+          </div>
+          <div class="action-row">
+            <span class="selected-count" id="selected-count">已选 0 张</span>
+            <button class="btn btn-primary" id="btn-play" disabled>出牌</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+
+  <div class="chat-popups" id="chat-popups" aria-live="polite"></div>
+
+  <aside class="chat-drawer" id="chat-drawer" hidden>
+    <header class="chat-head">
+      <strong>局内聊天</strong>
+      <button class="btn btn-ghost" id="btn-close-chat" type="button" aria-label="关闭聊天">×</button>
+    </header>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="quick-phrases" id="quick-phrases"></div>
+    <div class="emoji-bar" id="emoji-bar"></div>
+    <form class="chat-form" id="chat-form">
+      <input id="chat-input" type="text" maxlength="200" autocomplete="off" placeholder="输入消息，支持 emoji" />
+      <button class="btn btn-primary" type="submit">发送</button>
+    </form>
+  </aside>
+
+  <div class="modal-mask" id="modal-mask" hidden>
+    <div class="modal" id="modal" role="dialog" aria-modal="true">
+      <h3 id="modal-title"></h3>
+      <div class="modal-body" id="modal-body"></div>
+      <button class="btn btn-primary btn-block" id="modal-close">知道了</button>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <div class="confetti-layer" id="confetti-layer" hidden aria-hidden="true"></div>
+
+  <audio id="bgm" src="bgm.mp3" loop preload="auto"></audio>
+  <audio id="sfx-play" src="sounds/play.mp3" preload="auto"></audio>
+  <audio id="sfx-win" src="sounds/win.mp3" preload="auto"></audio>
+  <audio id="sfx-lose" src="sounds/lose.mp3" preload="auto"></audio>
+
+  <script src="app.js"></script>
+</body>
+</html>
